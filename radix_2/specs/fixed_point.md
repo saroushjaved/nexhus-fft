@@ -40,6 +40,5 @@ int16_t real, imag
 ## Purpose
 - Bit-accurate software reference
 - Golden model for RTL and verification
-```
 ---
 
