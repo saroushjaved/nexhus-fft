@@ -1,7 +1,7 @@
 # NEXHUS IP — `FFT`
 ## STATUS: UNDER DEVELOPMENT
 
-> **Fixed-point Radix-2 FFT IP with C reference model, MATLAB golden vectors, and synthesizable RTL**
+> **Fixed-point FFT Implementations IP with C++ and Octave reference model, Synthesizable Verilog RTL and Test Benches**
 
 ---
 
@@ -11,10 +11,9 @@ This repository contains the **`FFT`** block developed as part of the **NEXHUS**
 
 The IP is designed following a **spec → model → software → RTL → verification** flow:
 
-1. Mathematical reference model (MATLAB)
-2. Bit-accurate fixed-point software model (C/C++)
+1. Mathematical reference model (Octave)
+2. Bit-accurate fixed-point software model (C/C++/Octave)
 3. Synthesizable RTL
-4. Verification against frozen golden vectors
 
 This IP can be:
 
@@ -37,10 +36,10 @@ This IP can be:
 
 ```
 |___radix_2/
-|   ├── spec/                 # IP specification and interface definitions
+|   ├── spec/                             # IP specification and interface definitions
 |   ├── model/
-|   │   └── matlab/           # Reference model + vector generation
-|   │   └── cpp/              # Reference model + vector generation
+|   │   └── octave/                       # Reference model + vector generation
+|   │   └── cpp_fixed_point/              # Reference model + vector generation
 |   ├── sw/
 |   │   ├── include/          # Public headers
 |   │   ├── src/              # Implementation
@@ -85,52 +84,11 @@ See `spec/fixed_point.md` for details.
 
 ---
 
-## Integration into NEXHUS
-
-This IP is integrated into the main **`nexhus`** repository as a **git submodule**, pinned to a specific release.
-
-Example:
-
-```bash
-git submodule add <repo-url> ip/<ip_name>
-```
-
----
 
 ## License
 
-
 ## Contributing
-
-Contributions are welcome.
-
-Please:
-
-* follow the coding style
-* update tests and vectors if behavior changes
-* run CI locally before submitting
-
-See `CONTRIBUTING.md` for details.
-
----
-
-## Status
-
-| Component      | Status |
-| -------------- | ------ |
-| Spec           | ✅      |
-| MATLAB model   | ✅      |
-| Software model | 🚧     |
-| RTL            | 🚧     |
-| Verification   | 🚧     |
-
----
 
 ## Contact
 
-Maintained as part of the **NEXHUS** open-source project.
-
----
-
-### 🔒 Final recommendation (important)
-
+Email: saroushjaved@gmail.com
