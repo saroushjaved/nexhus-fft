@@ -36,26 +36,27 @@ This IP can be:
 ## Repository Structure
 
 ```
-.
-├── spec/                 # IP specification and interface definitions
-├── model/
-│   └── matlab/           # Reference model + vector generation
-│   └── cpp/              # Reference model + vector generation
-├── sw/
-│   ├── include/          # Public headers
-│   ├── src/              # Implementation
-│   ├── tests/            # Unit tests vs golden vectors
-│   └── examples/         # Usage examples
-├── rtl/
-│   └── src/              # Synthesizable RTL
-├── dv/
-│   ├── testbench/        # Verification environment
-│   └── tests/            # Directed and random tests
-├── vectors/
-│   ├── golden/           # Frozen reference vectors (versioned)
-│   └── generated/        # Auto-generated (ignored)
-├── tools/                # Helper scripts
-└── .github/workflows/    # CI
+|___radix_2/
+|   ├── spec/                 # IP specification and interface definitions
+|   ├── model/
+|   │   └── matlab/           # Reference model + vector generation
+|   │   └── cpp/              # Reference model + vector generation
+|   ├── sw/
+|   │   ├── include/          # Public headers
+|   │   ├── src/              # Implementation
+|   │   ├── tests/            # Unit tests vs golden vectors
+|   │   └── examples/         # Usage examples
+|   ├── rtl/
+|   │   └── src/              # Synthesizable RTL
+|   ├── dv/
+|   │   ├── testbench/        # Verification environment
+|   │   └── tests/            # Directed and random tests
+|   ├── vectors/
+|   │   ├── golden/           # Frozen reference vectors (versioned)
+|   │   └── generated/        # Auto-generated (ignored)
+|   ├── tools/                # Helper scripts
+|   └── .github/workflows/    # CI
+|___radix_3
 ```
 
 ---
