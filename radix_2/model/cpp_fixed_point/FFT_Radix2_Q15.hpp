@@ -2,6 +2,11 @@
 
 #include <cstdint>
 
+
+// Compile time constants
+static constexpr int N      = 8/* power of two */;
+static constexpr int LOG2N  = 3/* log2(N) */;
+
 // -----------------------------
 // Q15 Complex + helpers
 // -----------------------------
@@ -32,6 +37,30 @@ public:
     void two_point_fft(Complex* x) const;
     void four_point_fft_from_2pt_results(Complex* x, const Twiddle_Factor_Table& W4T) const;
     void eight_point_fft(Complex* x, const Twiddle_Factor_Table& W8T) const;
+      // Atomic radix-2 DIT butterfly core (Q15, scaled by 1 bit)
+    void butterfly_dit_q15_s1(
+        const Complex& a,
+        const Complex& b,
+        const Complex& W,
+        Complex& y0,
+        Complex& y1
+    ) const;
+
+    Twiddle_Factor_Table W4T_;
+    Twiddle_Factor_Table W8T_;
+
+      void FFT_Stage_DIT(
+        int stage,
+        Complex* x,
+        const Twiddle_Factor_Table& Wt
+    ) const;
+
+
+    void FFT_Core_DIT(
+        Complex* x,
+        const Twiddle_Factor_Table& Wt
+    ) const;
+
 
 private:
     // helpers
@@ -62,6 +91,8 @@ private:
         { (int16_t)0x5A82, (int16_t)0x5A82 }  // +0.7071 + 0.7071j
     };
 
-    Twiddle_Factor_Table W4T_;
-    Twiddle_Factor_Table W8T_;
+
+
 };
+
+  

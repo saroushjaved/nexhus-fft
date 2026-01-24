@@ -1,46 +1,88 @@
 #include "FFT_Radix2_Q15.hpp"
 #include <cstdio>
 #include <cstdint>
+#include <cstring>
+#include <cstdlib>
+
+static inline bool within_lsb(int32_t d, int32_t tol) {
+    return (d >= -tol) && (d <= tol);
+}
 
 int main() {
     FFT_Radix2_Q15 fft;
 
-    // Your sample input (Q15)
-    Complex x[8] = {
-        {(int16_t)0x0000, (int16_t)0x0000},
-        {(int16_t)0x5A82, (int16_t)0x0000},
-        {(int16_t)0x7FFF, (int16_t)0x0000},
-        {(int16_t)0x5A82, (int16_t)0x0000},
-        {(int16_t)0x0000, (int16_t)0x0000},
-        {(int16_t)0xA57E, (int16_t)0x0000},
-        {(int16_t)0x8000, (int16_t)0x0000},
-        {(int16_t)0xA57E, (int16_t)0x0000}
+    // Input (Q15)
+    Complex x_in[8] = {
+        { 32767, 0 },
+        { 23170,-23170 },
+        {     0,-32767 },
+        {-23170,-23170 },
+        {-32767, 0 },
+        {-23170, 23170 },
+        {     0, 32767 },
+        { 23170, 23170 }
     };
 
-    // Same pipeline as your original code:
-    fft.bit_reverse_reorder_incr(x, 8);
+    // Copies for both paths
+    Complex x_ref[8];
+    Complex x_gen[8];
+    std::memcpy(x_ref, x_in, sizeof(x_in));
+    std::memcpy(x_gen, x_in, sizeof(x_in));
 
-    // Stage 1: 2-point FFTs
-    for (int i = 0; i < 8; i += 2) {
-        fft.two_point_fft(&x[i]);
-    }
+    // -------------------------------------------------
+    // Reference pipeline (original hand-written stages)
+    // -------------------------------------------------
+    fft.bit_reverse_reorder_incr(x_ref, 8);
 
-    // Stage 2: 4-point FFTs
-    for (int i = 0; i < 8; i += 4) {
-        fft.four_point_fft_from_2pt_results(&x[i], fft.W4T());
-    }
+    for (int i = 0; i < 8; i += 2)
+        fft.two_point_fft(&x_ref[i]);
 
-    // Stage 3: 8-point combine
-    fft.eight_point_fft(x, fft.W8T());
+    for (int i = 0; i < 8; i += 4)
+        fft.four_point_fft_from_2pt_results(&x_ref[i], fft.W4T());
 
-    // Output (scaled by 1/8 overall)
+    fft.eight_point_fft(x_ref, fft.W8T());
+
+    // -------------------------------------------------
+    // Generalized radix-2 DIT FFT core
+    // -------------------------------------------------
+    fft.bit_reverse_reorder_incr(x_gen, 8);
+    fft.FFT_Core_DIT(x_gen, fft.W8T());
+
+    // -------------------------------------------------
+    // Compare results
+    // -------------------------------------------------
+    bool exact_match = true;
+    bool tol_match   = true;
+
+    std::printf(
+        "Idx | REF (hex)        | GEN (hex)        | dRe  dIm | Result\n"
+        "-----------------------------------------------------------------------\n"
+    );
+
     for (int i = 0; i < 8; ++i) {
-        std::printf("X[%d] = 0x%04X + j0x%04X   (%.6f + j%.6f)\n",
-                    i,
-                    (uint16_t)x[i].real, (uint16_t)x[i].imag,
-                    (float)x[i].real / 32768.0f,
-                    (float)x[i].imag / 32768.0f);
+        int32_t dre = (int32_t)x_ref[i].real - (int32_t)x_gen[i].real;
+        int32_t dim = (int32_t)x_ref[i].imag - (int32_t)x_gen[i].imag;
+
+        bool exact = (dre == 0) && (dim == 0);
+        bool tol1  = within_lsb(dre, 1) && within_lsb(dim, 1);
+
+        exact_match &= exact;
+        tol_match   &= tol1;
+
+        std::printf(
+            " %2d | 0x%04X + j0x%04X | 0x%04X + j0x%04X | %4ld %4ld | %s\n",
+            i,
+            (uint16_t)x_ref[i].real, (uint16_t)x_ref[i].imag,
+            (uint16_t)x_gen[i].real, (uint16_t)x_gen[i].imag,
+            (long)dre, (long)dim,
+            exact ? "EXACT" : (tol1 ? "±1 LSB OK" : "DIFF")
+        );
     }
 
-    return 0;
+    std::printf("-----------------------------------------------------------------------\n");
+    std::printf("Exact match : %s\n", exact_match ? "YES" : "NO");
+    std::printf("±1 LSB match: %s\n", tol_match   ? "YES (ACCEPTED)" : "NO (ERROR)");
+
+    // Return failure only if outside tolerance
+    return tol_match ? 0 : 1;
 }

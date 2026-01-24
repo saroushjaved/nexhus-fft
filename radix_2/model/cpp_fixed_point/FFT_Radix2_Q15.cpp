@@ -104,20 +104,77 @@ void FFT_Radix2_Q15::four_point_fft_from_2pt_results(Complex* x, const Twiddle_F
     x[3].imag = sub_sat_s1(E1.imag, t1.imag);
 }
 
-void FFT_Radix2_Q15::eight_point_fft(Complex* x, const Twiddle_Factor_Table& W8T) const {
-    Complex E[4], O[4];
-    for (int k = 0; k < 4; ++k) {
-        E[k] = x[k];
-        O[k] = x[k + 4];
+    void FFT_Radix2_Q15::eight_point_fft(Complex* x, const Twiddle_Factor_Table& W8T) const {
+        Complex E[4], O[4];
+        for (int k = 0; k < 4; ++k) {
+            E[k] = x[k];
+            O[k] = x[k + 4];
+        }
+
+        for (int k = 0; k < 4; ++k) {
+            Complex Wk = W8T.Twiddle_Factors[k];
+            Complex t  = cmul_q15(O[k], Wk);
+
+            x[k].real     = add_sat_s1(E[k].real, t.real);
+            x[k].imag     = add_sat_s1(E[k].imag, t.imag);
+            x[k + 4].real = sub_sat_s1(E[k].real, t.real);
+            x[k + 4].imag = sub_sat_s1(E[k].imag, t.imag);
+        }
     }
 
-    for (int k = 0; k < 4; ++k) {
-        Complex Wk = W8T.Twiddle_Factors[k];
-        Complex t  = cmul_q15(O[k], Wk);
+    // Atomic radix-2 DIT butterfly (Q15)
+    // y0 = a + W*b
+    // y1 = a - W*b
+    // Scaling: +/− stage results are scaled by 1 (>>1) via add_sat_s1/sub_sat_s1
+    inline void FFT_Radix2_Q15::butterfly_dit_q15_s1(
+        const Complex& a,
+        const Complex& b,
+        const Complex& W,
+        Complex& y0,
+        Complex& y1
+    ) const {
+        // t = W * b (Q15)
+        Complex t = cmul_q15(b, W);
 
-        x[k].real     = add_sat_s1(E[k].real, t.real);
-        x[k].imag     = add_sat_s1(E[k].imag, t.imag);
-        x[k + 4].real = sub_sat_s1(E[k].real, t.real);
-        x[k + 4].imag = sub_sat_s1(E[k].imag, t.imag);
+        // y0 = a + t, y1 = a - t (each scaled by 1 bit with saturation)
+        y0.real = add_sat_s1(a.real, t.real);
+        y0.imag = add_sat_s1(a.imag, t.imag);
+
+        y1.real = sub_sat_s1(a.real, t.real);
+        y1.imag = sub_sat_s1(a.imag, t.imag);
     }
-}
+
+    // Assumes:
+    // - N and LOG2N are compile-time constants (e.g., static constexpr int N=...; LOG2N=...)
+    // - Wt.Twiddle_Factors has at least N/2 entries for an N-point FFT
+    // - butterfly_dit_q15_s1(a,b,W,y0,y1) exists
+
+    void FFT_Radix2_Q15::FFT_Stage_DIT(int stage, Complex* x, const Twiddle_Factor_Table& Wt) const {
+        const int m      = 1 << (stage + 1); // group size
+        const int half_m = m >> 1;
+        const int step   = N / m;            // twiddle step for this stage
+
+        for (int k = 0; k < N; k += m) {
+            for (int j = 0; j < half_m; ++j) {
+                const int i0 = k + j;
+                const int i1 = i0 + half_m;
+
+                const Complex a = x[i0];
+                const Complex b = x[i1];
+                const Complex W = Wt.Twiddle_Factors[j * step];
+
+                Complex y0, y1;
+                butterfly_dit_q15_s1(a, b, W, y0, y1);
+
+                x[i0] = y0;
+                x[i1] = y1;
+            }
+        }
+    }
+
+
+    void FFT_Radix2_Q15::FFT_Core_DIT(Complex* x, const Twiddle_Factor_Table& Wt) const {
+        for (int stage = 0; stage < LOG2N; ++stage) {
+            FFT_Stage_DIT(stage, x, Wt);
+        }
+    }
