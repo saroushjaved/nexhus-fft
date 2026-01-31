@@ -18,10 +18,12 @@ module cmulq15 (
     wire signed [31:0] aibr = a_imag * b_real;
 
     // Intermediate sums (need extra bit for safety)
-    wire signed [32:0] real_acc = {arbr[31], arbr} - {aibi[31], aibi} + 33'sd16384; // + (1<<14)
-    wire signed [32:0] imag_acc = {arbi[31], arbi} + {aibr[31], aibr} + 33'sd16384; // + (1<<14)
-
-    // Arithmetic right shift by 15 (keeps sign)
+    wire signed [32:0] real_acc = {arbr[31], arbr} - {aibi[31], aibi};
+    wire signed [32:0] imag_acc = {arbi[31], arbi} + {aibr[31], aibr};
+    
+    //wire signed [32:0] real_acc_rnd = real_acc + (real_acc[32] ? -33'sd16384 : 33'sd16384);
+    //wire signed [32:0] imag_acc_rnd = imag_acc + (imag_acc[32] ? -33'sd16384 : 33'sd16384);
+    
     wire signed [32:0] real_q15_wide = real_acc >>> 15;
     wire signed [32:0] imag_q15_wide = imag_acc >>> 15;
 

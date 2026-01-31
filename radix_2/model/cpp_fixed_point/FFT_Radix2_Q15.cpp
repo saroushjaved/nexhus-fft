@@ -154,8 +154,8 @@ void FFT_Radix2_Q15::four_point_fft_from_2pt_results(Complex* x, const Twiddle_F
         const int half_m = m >> 1;
         const int step   = N / m;            // twiddle step for this stage
 
-        for (int k = 0; k < N; k += m) {
-            for (int j = 0; j < half_m; ++j) {
+        for (int k = 0; k < N; k += m) { // k m = basically what point FFT is being taken in the stage 
+            for (int j = 0; j < half_m; ++j) { // butterfly within the group used iterativly for comptuing the m point FFT
                 const int i0 = k + j;
                 const int i1 = i0 + half_m;
 
@@ -177,4 +177,6 @@ void FFT_Radix2_Q15::four_point_fft_from_2pt_results(Complex* x, const Twiddle_F
         for (int stage = 0; stage < LOG2N; ++stage) {
             FFT_Stage_DIT(stage, x, Wt);
         }
+
+
     }
