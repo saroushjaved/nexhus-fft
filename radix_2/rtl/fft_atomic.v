@@ -25,7 +25,7 @@ module fft_atomic_p1 (
     wire signed [15:0] t_real_c;
     wire signed [15:0] t_imag_c;
 
-    cmul_q15 u_cmul_q15 (
+    cmulq15 u_cmul_q15 (
         .a_real (b_real),
         .a_imag (b_imag),
         .b_real (W_real),
