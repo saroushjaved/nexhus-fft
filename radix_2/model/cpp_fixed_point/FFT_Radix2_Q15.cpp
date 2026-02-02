@@ -4,10 +4,12 @@
 // Provide storage (safe for many toolchains)
 constexpr Complex FFT_Radix2_Q15::W4_TW_[4];
 constexpr Complex FFT_Radix2_Q15::W8_TW_[8];
+constexpr Complex FFT_Radix2_Q15::W16_TW_[16];
 
 FFT_Radix2_Q15::FFT_Radix2_Q15()
     : W4T_{4, W4_TW_},
-      W8T_{8, W8_TW_}
+      W8T_{8, W8_TW_},
+      W16T_{16, W16_TW_}    
 {}
 
 // -----------------------------

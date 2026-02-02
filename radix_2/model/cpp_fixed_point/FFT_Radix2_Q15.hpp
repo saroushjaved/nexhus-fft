@@ -4,8 +4,8 @@
 
 
 // Compile time constants
-static constexpr int N      = 8/* power of two */;
-static constexpr int LOG2N  = 3/* log2(N) */;
+static constexpr int N      = 16/* power of two */;
+static constexpr int LOG2N  = 4/* log2(N) */;
 
 // -----------------------------
 // Q15 Complex + helpers
@@ -30,6 +30,7 @@ public:
     // Accessors for twiddle tables (so main can keep same calls)
     const Twiddle_Factor_Table& W4T() const { return W4T_; }
     const Twiddle_Factor_Table& W8T() const { return W8T_; }
+       const Twiddle_Factor_Table& W16T() const { return W16T_; }
 
     // Keep your pipeline calls the same, but as class methods:
     void bit_reverse_reorder_incr(Complex* x, uint32_t N) const;
@@ -48,6 +49,7 @@ public:
 
     Twiddle_Factor_Table W4T_;
     Twiddle_Factor_Table W8T_;
+    Twiddle_Factor_Table W16T_;
 
       void FFT_Stage_DIT(
         int stage,
@@ -90,6 +92,25 @@ private:
         { (int16_t)0x0000, (int16_t)0x7FFF }, // +0.0   + 1.0j
         { (int16_t)0x5A82, (int16_t)0x5A82 }  // +0.7071 + 0.7071j
     };
+
+    static constexpr Complex W16_TW_[16] = {
+    { (int16_t)0x7FFF, (int16_t)0x0000 }, // W0  = +1.0000 + j0.0000
+    { (int16_t)0x7642, (int16_t)0xE9BE }, // W1  = +0.9239 - j0.3827
+    { (int16_t)0x5A82, (int16_t)0xA57E }, // W2  = +0.7071 - j0.7071
+    { (int16_t)0x30FC, (int16_t)0x89BE }, // W3  = +0.3827 - j0.9239
+    { (int16_t)0x0000, (int16_t)0x8000 }, // W4  = +0.0000 - j1.0000
+    { (int16_t)0xCF04, (int16_t)0x89BE }, // W5  = -0.3827 - j0.9239
+    { (int16_t)0xA57E, (int16_t)0xA57E }, // W6  = -0.7071 - j0.7071
+    { (int16_t)0x89BE, (int16_t)0xE9BE }, // W7  = -0.9239 - j0.3827
+    { (int16_t)0x8000, (int16_t)0x0000 }, // W8  = -1.0000 + j0.0000
+    { (int16_t)0x89BE, (int16_t)0x30FC }, // W9  = -0.9239 + j0.3827
+    { (int16_t)0xA57E, (int16_t)0x5A82 }, // W10 = -0.7071 + j0.7071
+    { (int16_t)0xCF04, (int16_t)0x7642 }, // W11 = -0.3827 + j0.9239
+    { (int16_t)0x0000, (int16_t)0x7FFF }, // W12 = +0.0000 + j1.0000
+    { (int16_t)0x30FC, (int16_t)0x7642 }, // W13 = +0.3827 + j0.9239
+    { (int16_t)0x5A82, (int16_t)0x5A82 }, // W14 = +0.7071 + j0.7071
+    { (int16_t)0x7642, (int16_t)0x30FC }  // W15 = +0.9239 + j0.3827
+        };
 
 
 
