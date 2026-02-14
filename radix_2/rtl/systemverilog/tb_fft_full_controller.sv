@@ -1,33 +1,56 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 02/14/2026 11:11:03 PM
+// Design Name: 
+// Module Name: tb_fft_full_controller
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module tb_fft_full_controller(
+
+    );
+endmodule
 `timescale 1ns/1ps
 
-module tb_fft_stage_core_controller;
+module tb_fft_full_controller;
 
-    localparam integer N          = 16;
-    localparam integer CORE_CYCLES = 2;
-    localparam string TW_FILE  = "twiddle16.mem";
+    localparam integer N           = 16;
+    localparam integer CORE_CYCLES  = 2;
 
     logic                   clk;
     logic                   rst_n;
     logic                   start;
-    logic [3:0]             stage;
     logic [N*32-1:0]        fft_data_in;
     logic [N*32-1:0]        fft_data_out;
     logic                   done;
 
-    // DUT
-    fft_stage_core_controller #(
+    // DUT: TOP wrapper that sequences stages internally
+    // (Make sure the module name matches what you called it.)
+    fft_fft_controller_top #(
         .N(N),
         .CORE_CYCLES(CORE_CYCLES),
-        .AUTO_STAGE(1'b0),
-        .TW_FILE(TW_FILE)
+        .TW_FILE("twiddle16.mem")   // or whatever your ROM file is named
     ) dut (
-        .clk(clk),
-        .rst_n(rst_n),
-        .start(start),
-        .stage(stage),
-        .fft_data_in(fft_data_in),
+        .clk         (clk),
+        .rst_n       (rst_n),
+        .start       (start),
+        .fft_data_in (fft_data_in),
         .fft_data_out(fft_data_out),
-        .done(done)
+        .done        (done)
     );
 
     // clock: 100 MHz
@@ -40,15 +63,14 @@ module tb_fft_stage_core_controller;
         clk = 0;
         rst_n = 0;
         start = 0;
-        stage = 0;
         fft_data_in = 0;
 
         // reset
         #20;
         rst_n = 1;
 
-        // pack input data (Q1.15)
-           fft_data_in = {
+        // pack input data (Q1.15)  (UNCHANGED)
+        fft_data_in = {
             16'h2000, 16'hF000,  // x[0]
             16'hF000, 16'h2000,  // x[1]
             16'h4000, 16'h0800,  // x[2]
@@ -57,7 +79,7 @@ module tb_fft_stage_core_controller;
             16'h0800, 16'hE000,  // x[5]
             16'h0400, 16'h0C00,  // x[6]
             16'hF800, 16'hF000,  // x[7]
-        
+
             16'h3000, 16'h1000,  // x[8]
             16'hD000, 16'hF000,  // x[9]
             16'h1800, 16'h0400,  // x[10]
@@ -68,17 +90,17 @@ module tb_fft_stage_core_controller;
             16'hFE00, 16'h0200   // x[15]
         };
 
-        // select stage
-        stage = 0;
-
-        // start pulse (1 clock)
-        #10
+        // start pulse (1 clock)  (UNCHANGED)
+        #10;
         start = 1;
-        #10
+        #10;
         start = 0;
+
+        // wait for completion of FULL FFT
         wait (done);
-       
-        $display("\nFFT OUTPUTS:");
+        #20
+
+        $display("\nFFT OUTPUTS (FULL CYCLE):");
         for (i = 0; i < N; i = i + 1) begin
             re = fft_data_out[(N-1-i)*32 + 31 -: 16];
             im = fft_data_out[(N-1-i)*32 + 15 -: 16];

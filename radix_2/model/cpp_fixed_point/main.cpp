@@ -32,13 +32,14 @@ int main() {
     { (int16_t)0xFE00, (int16_t)0x0200 }  // x[15]
 };
 
-    fft.FFT_Stage_DIT(0, x, fft.W16T_);
-    printf("After Stage 0:\n");
-    for (int i = 0; i < 16; ++i) {
-        printf("x[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
-    }
+    
 
-    // Test input: a simple impulse
+    // Complete FFT
+    fft.FFT_Core_DIT(x, fft.W16T_);
+    printf("\nAfter FFT:\n");
+    for (int i = 0; i < 16; ++i) {
+        printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
+    }
 
     // Return failure only if outside tolerance
     return 0;
