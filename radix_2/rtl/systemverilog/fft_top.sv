@@ -1,4 +1,4 @@
-module fft_fft_controller_top #(
+module fft_top #(
     parameter int N           = 16,
     parameter int CORE_CYCLES = 2,
     parameter string TW_FILE  = "twiddle16.mem"

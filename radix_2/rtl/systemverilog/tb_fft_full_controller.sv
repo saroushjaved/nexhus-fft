@@ -40,7 +40,7 @@ module tb_fft_full_controller;
 
     // DUT: TOP wrapper that sequences stages internally
     // (Make sure the module name matches what you called it.)
-    fft_fft_controller_top #(
+    fft_top #(
         .N(N),
         .CORE_CYCLES(CORE_CYCLES),
         .TW_FILE("twiddle16.mem")   // or whatever your ROM file is named
