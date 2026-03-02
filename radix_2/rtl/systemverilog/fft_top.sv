@@ -1,7 +1,7 @@
 module fft_top #(
-    parameter int N           = 16,
+    parameter int N           = 1024,
     parameter int CORE_CYCLES = 2,
-    parameter string TW_FILE  = "twiddle16.mem"
+    parameter string TW_FILE  = "twiddle1024.mem"
 )(
     input  logic             clk,
     input  logic             rst_n,
