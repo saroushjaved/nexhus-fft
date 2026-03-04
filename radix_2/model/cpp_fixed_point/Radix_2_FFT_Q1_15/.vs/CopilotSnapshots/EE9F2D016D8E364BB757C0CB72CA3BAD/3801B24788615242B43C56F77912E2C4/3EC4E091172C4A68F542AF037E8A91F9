@@ -1,0 +1,79 @@
+﻿#include "FFT_Radix2_Q15.hpp"
+#include <cstdio>
+#include <cstdint>
+#include <cstring>
+#include <cstdlib>
+#include <cerrno>
+
+
+static inline bool within_lsb(int32_t d, int32_t tol) {
+    return (d >= -tol) && (d <= tol);
+}
+
+static bool load_complex_q15_file(const char* path, Complex* x, int N)
+{
+    FILE* f = nullptr;
+    int err = std::fopen_s(&f, path, "r");
+    if (err != 0 || !f) {
+        errno = err; // make perror show the fopen_s error
+        std::perror("fopen");
+        return false;
+    }
+
+    for (int n = 0; n < N; ++n) {
+        unsigned int r = 0, i = 0;
+
+        // Accepts "0x1234 0xABCD" or "1234 ABCD"
+        int rc = std::fscanf(f, "%x %x", &r, &i);
+        if (rc != 2) {
+            std::fprintf(stderr, "Parse error in %s at line %d\n", path, n + 1);
+            std::fclose(f);
+            return false;
+        }
+
+        x[n].real = (int16_t)r;
+        x[n].imag = (int16_t)i;
+    }
+
+    std::fclose(f);
+    return true;
+}
+
+int main() {
+    FFT_Radix2_Q15 fft;
+
+    constexpr int N = 1024;
+    Complex x[N];
+
+    // Choose one file to test
+    const char* in_file = "sinusoid_1024_input.txt";
+    // const char* in_file = "impulse_1024_input.txt";
+    // const char* in_file = "mixed_1024_input.txt";
+
+    if (!load_complex_q15_file(in_file, x, N)) {
+        return 1;
+    }
+
+    // Run FFT using your 1024 twiddle table
+    fft.FFT_Core_DIT(x, fft.W1024T());
+
+    // Print a few bins to sanity-check
+    std::printf("After FFT (first 16 bins):\n");
+    for (int i = 0; i < 16; ++i) {
+        std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
+    }
+
+    // Also useful: print bins around the expected tone (k=37 and 987)
+    int k = 37;
+    std::printf("\nBins around k=%d:\n", k);
+    for (int i = k - 2; i <= k + 2; i++) {
+        std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
+    }
+    std::printf("\nBins around k=%d:\n", N - k);
+    for (int i = (N - k) - 2; i <= (N - k) + 2; i++) {
+        std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
+    }
+
+    return 0;
+}
+// for commit
