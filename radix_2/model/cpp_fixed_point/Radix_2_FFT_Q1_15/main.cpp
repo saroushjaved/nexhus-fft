@@ -6,6 +6,29 @@
 #include <cstring>
 #include <cstdlib>
 
+
+static bool write_fft_bins_hex(const char* path, const Complex* X, int N)
+{
+    FILE* f = std::fopen(path, "w");
+    if (!f) {
+        std::perror("fopen (output)");
+        return false;
+    }
+
+    for (int k = 0; k < N; ++k) {
+        // Cast to uint16_t for clean 4-hex-digit printing even for negatives
+        uint16_t r = static_cast<uint16_t>(X[k].real);
+        uint16_t i = static_cast<uint16_t>(X[k].imag);
+
+        // k as decimal + real/imag as 16-bit hex, one bin per line
+        std::fprintf(f, "%4d 0x%04X 0x%04X\n", k, r, i);
+    }
+
+    std::fclose(f);
+    return true;
+}
+
+
 static inline bool within_lsb(int32_t d, int32_t tol) {
     return (d >= -tol) && (d <= tol);
 }
@@ -44,7 +67,7 @@ int main() {
     Complex x[N];
 
     // Choose one file to test
-    const char* in_file = "sinusoid_1024_input.txt";
+    const char* in_file = "mixed_1024_input.txt";
     // const char* in_file = "impulse_1024_input.txt";
     // const char* in_file = "mixed_1024_input.txt";
 
@@ -52,28 +75,23 @@ int main() {
         return 1;
     }
 
-    // Bit-reversal reorder (required for DIT FFT)
-    fft.bit_reverse_reorder_incr(x, N);
+  
 
     // Complete FFT
-    fft.FFT_Core_DIT(x, fft.W16T_);
+    fft.FFT_Core_DIT(x, fft.W1024T_);
 
-    // Print a few bins to sanity-check
-    std::printf("After FFT (first 16 bins):\n");
+  
+
     for (int i = 0; i < 16; ++i) {
         std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
     }
 
-    // Also useful: print bins around the expected tone (k=37 and 987)
-    int k = 37;
-    std::printf("\nBins around k=%d:\n", k);
-    for (int i = k - 2; i <= k + 2; i++) {
-        std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
+    const char* out_file = "cmodel_fft_out_mixed_1024.txt";
+    if (!write_fft_bins_hex(out_file, x, N)) {
+        return 1;
     }
-    std::printf("\nBins around k=%d:\n", N - k);
-    for (int i = (N - k) - 2; i <= (N - k) + 2; i++) {
-        std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
-    }
+    std::printf("\nWrote %d FFT bins to %s\n", N, out_file);
+
 
     return 0;
 }

@@ -27,34 +27,34 @@ def write_complex_file(filename, real, imag):
     print("Generated:", filename)
 
 
-# ------------------------------------------------
-# 1️⃣ Sinusoid
-# ------------------------------------------------
+# # ------------------------------------------------
+# # 1️⃣ Sinusoid
+# # ------------------------------------------------
 
-k = 37
-A = 0.7
+# k = 37
+# A = 0.7
 
-real = []
-imag = []
+# real = []
+# imag = []
 
-for n in range(N):
-    val = A * math.cos(2 * math.pi * k * n / N)
-    real.append(val)
-    imag.append(0.0)
+# for n in range(N):
+#     val = A * math.cos(2 * math.pi * k * n / N)
+#     real.append(val)
+#     imag.append(0.0)
 
-write_complex_file("sinusoid_1024_input.txt", real, imag)
+# write_complex_file("sinusoid_16_input.txt", real, imag)
 
 
-# ------------------------------------------------
-# 2️⃣ Impulse
-# ------------------------------------------------
+# # # ------------------------------------------------
+# # # 2️⃣ Impulse
+# # # ------------------------------------------------
 
-real = [0.0] * N
-imag = [0.0] * N
+# real = [0.0] * N
+# imag = [0.0] * N
 
-real[0] = 0.9
+# real[0] = 0.9
 
-write_complex_file("impulse_1024_input.txt", real, imag)
+# write_complex_file("impulse_1024_input.txt", real, imag)
 
 
 # ------------------------------------------------
