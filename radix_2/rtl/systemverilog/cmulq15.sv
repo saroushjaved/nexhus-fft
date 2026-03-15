@@ -49,12 +49,18 @@ module cmulq15 (
     // assign imag_acc_rnd = imag_acc + 33'sd16384;  // + (1<<14)
 
     // Shift down to Q1.15 (currently truncation)
-    logic signed [32:0] real_q15_wide;
-    logic signed [32:0] imag_q15_wide;
 
-    assign real_q15_wide = real_acc >>> 15;
-    assign imag_q15_wide = imag_acc >>> 15;
+    logic signed [32:0] real_acc_rnd, imag_acc_rnd;
+    logic signed [32:0] real_q15_wide, imag_q15_wide;
 
+        assign real_acc_rnd = real_acc + 33'sd16384; // 1<<14
+        assign imag_acc_rnd = imag_acc + 33'sd16384; // 1<<14
+        
+        assign real_q15_wide = real_acc_rnd >>> 15;
+        assign imag_q15_wide = imag_acc_rnd >>> 15;
+        
+        
+           
     // Saturation to signed 16-bit
     function automatic logic signed [15:0] sat16 (input logic signed [32:0] x);
         begin

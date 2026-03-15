@@ -1,7 +1,0 @@
-Change Logs 
-
-2026/02/26 
- - Changing the parameters of fft_top for N = 1024 
- - Added a twiddle1025.mem
- - Test Bench to be Added and Tested (9:26 p.m.)
- 

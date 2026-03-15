@@ -67,7 +67,7 @@ int main() {
     Complex x[N];
 
     // Choose one file to test
-    const char* in_file = "mixed_1024_input.txt";
+    const char* in_file = "impulse_1024_input.txt";
     // const char* in_file = "impulse_1024_input.txt";
     // const char* in_file = "mixed_1024_input.txt";
 
@@ -78,15 +78,16 @@ int main() {
   
 
     // Complete FFT
+	fft.bit_reverse_reorder_incr(x, N);
     fft.FFT_Core_DIT(x, fft.W1024T_);
 
   
 
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < 1024; ++i) {
         std::printf("X[%d] = (%6d, %6d)\n", i, x[i].real, x[i].imag);
     }
 
-    const char* out_file = "cmodel_fft_out_mixed_1024.txt";
+    const char* out_file = "cmodel_fft_out_impulse_1024.txt";
     if (!write_fft_bins_hex(out_file, x, N)) {
         return 1;
     }
