@@ -35,10 +35,7 @@ nexhus-fft/
 │       ├── source/        (Contains design files)
 │       ├── simulation/    (Contains the testbenches)
 │       └── memory/        (Contains memory files)
-│
-├── specs/
-│   └── (Detailed markdown document containing the specifications)
-│
+|
 ├── vectors/
 │   └── radix_2/
 │       ├── golden/            (Golden input vectors)
