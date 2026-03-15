@@ -187,47 +187,6 @@ The following table summarizes the key specifications and design characteristics
 | N                       | Current Implementation if done for 1024 Points FFT                                         |
 
 
-## Scaling
-
-The FFT datapath uses **Q1.15 fixed-point arithmetic**, where each real and imaginary component is represented using 16-bit signed values with 15 fractional bits.
-
-During complex multiplication, the intermediate products expand in precision:
-
-* `Q1.15 × Q1.15 → Q2.30`
-
-This occurs because each 16-bit fixed-point multiplication produces a **32-bit result with 30 fractional bits**.
-
-### Rescaling to Q1.15
-
-To return the result to Q1.15 format, the accumulator outputs are shifted right by 15 bits:
-
-| Operation        | Expression               |
-| ---------------- | ------------------------ |
-| Real accumulator | `real_acc = arbr - aibi` |
-| Imag accumulator | `imag_acc = arbi + aibr` |
-
-Before shifting, a rounding offset is applied:
-
-| Step     | Expression                            |
-| -------- | ------------------------------------- |
-| Rounding | `real_acc_rnd = real_acc + (1 << 14)` |
-|          | `imag_acc_rnd = imag_acc + (1 << 14)` |
-| Rescale  | `real_q15 = real_acc_rnd >>> 15`      |
-|          | `imag_q15 = imag_acc_rnd >>> 15`      |
-
-This rounding improves numeric accuracy compared to simple truncation.
-
-### Saturation
-
-After rescaling, the results are **saturated to the signed 16-bit range**:
-
-| Range   | Value    |
-| ------- | -------- |
-| Maximum | `+32767` |
-| Minimum | `-32768` |
-
-The final outputs are therefore valid **Q1.15 complex values** that can be used directly by the butterfly arithmetic units.
-
 
 ## Configurable Parameters
 
@@ -254,6 +213,14 @@ The top-level FFT accelerator is parameterized to allow changes in FFT length an
 * `N` should be a power of two for radix-2 FFT operation.
 * Increasing `N` increases the number of FFT stages.
 * `AXI_ADDR_W`, `AXI_DATA_W`, and `AXI_ID_W` allow the accelerator to be adapted to different system bus configurations.
+
+## External Interfaces
+
+| Interface | Purpose                      |
+| --------- | ---------------------------- |
+| AXI4-Lite | Control and status registers |
+| AXI4      | Sample memory access         |
+
 
 
 ## Supported FFT Sizes
@@ -314,6 +281,48 @@ FFT butterfly operations involve:
 Intermediate values may temporarily expand in width during multiplication or addition, after which results are scaled and truncated back to **16-bit Q1.15 format**.
 
 ---
+
+## Scaling
+
+The FFT datapath uses **Q1.15 fixed-point arithmetic**, where each real and imaginary component is represented using 16-bit signed values with 15 fractional bits.
+
+During complex multiplication, the intermediate products expand in precision:
+
+* `Q1.15 × Q1.15 → Q2.30`
+
+This occurs because each 16-bit fixed-point multiplication produces a **32-bit result with 30 fractional bits**.
+
+### Rescaling to Q1.15
+
+To return the result to Q1.15 format, the accumulator outputs are shifted right by 15 bits:
+
+| Operation        | Expression               |
+| ---------------- | ------------------------ |
+| Real accumulator | `real_acc = arbr - aibi` |
+| Imag accumulator | `imag_acc = arbi + aibr` |
+
+Before shifting, a rounding offset is applied:
+
+| Step     | Expression                            |
+| -------- | ------------------------------------- |
+| Rounding | `real_acc_rnd = real_acc + (1 << 14)` |
+|          | `imag_acc_rnd = imag_acc + (1 << 14)` |
+| Rescale  | `real_q15 = real_acc_rnd >>> 15`      |
+|          | `imag_q15 = imag_acc_rnd >>> 15`      |
+
+This rounding improves numeric accuracy compared to simple truncation.
+
+### Saturation
+
+After rescaling, the results are **saturated to the signed 16-bit range**:
+
+| Range   | Value    |
+| ------- | -------- |
+| Maximum | `+32767` |
+| Minimum | `-32768` |
+
+The final outputs are therefore valid **Q1.15 complex values** that can be used directly by the butterfly arithmetic units.
+
 
 ## Memory Layout
 
