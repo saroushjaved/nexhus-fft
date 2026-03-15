@@ -185,17 +185,30 @@ The following table summarizes the key specifications and design characteristics
 | Result Validation       | Simulation results compared against golden outputs                                         |
 | N                       | Current Implementation if done for 1024 Points FFT                                         |
 
+
+
 ## Configurable Parameters
 
-The FFT architecture is parameterized so that the design can support different FFT sizes without modifying the core logic. The following parameters control the size and behavior of the radix-2 FFT implementation.
+The top-level FFT accelerator is parameterized to allow changes in FFT length and AXI interface sizing without modifying the module internals.
 
-| Parameter       | Description                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `FFT_SIZE`      | Total number of FFT points (N). Determines how many complex samples are processed. Example values include 16, 64, 256, 1024, etc. |
-| `LOG2_FFT`      | Number of FFT stages, equal to `log2(FFT_SIZE)`. Each stage performs a radix-2 butterfly computation.                             |
-| `DATA_WIDTH`    | Bit width of each real or imaginary component. The current design uses 16-bit signed values (Q1.15 format).                       |
-| `COMPLEX_WIDTH` | Width of a packed complex sample. Typically `2 × DATA_WIDTH` (real + imaginary).                                                  |
-| `TWIDDLE_WIDTH` | Bit width used to represent twiddle factors. Matches the fixed-point representation used by the arithmetic units.                 |
-| `MEM_DEPTH`     | Depth of the internal sample memory. This value must be at least equal to `FFT_SIZE`.                                             |
-| `TWIDDLE_COUNT` | Number of twiddle factors stored in the ROM. Depends on the FFT size and stage structure.                                         |
+| Parameter    | Description                                                                                                           |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `N`          | Number of FFT points. This defines the transform size and the number of complex samples processed by the accelerator. |
+| `AXI_ADDR_W` | Width of the AXI address bus in bits. This determines the addressable range seen by the AXI interfaces.               |
+| `AXI_DATA_W` | Width of the AXI data bus in bits. This defines the size of each AXI data transfer word.                              |
+| `AXI_ID_W`   | Width of the AXI transaction ID field. This is used for AXI transaction tagging and response matching.                |
 
+### Default Parameter Values
+
+| Parameter    | Default Value |
+| ------------ | ------------- |
+| `N`          | `1024`        |
+| `AXI_ADDR_W` | `16`          |
+| `AXI_DATA_W` | `32`          |
+| `AXI_ID_W`   | `4`           |
+
+### Notes
+
+* `N` should be a power of two for radix-2 FFT operation.
+* Increasing `N` increases the number of FFT stages.
+* `AXI_ADDR_W`, `AXI_DATA_W`, and `AXI_ID_W` allow the accelerator to be adapted to different system bus configurations.
