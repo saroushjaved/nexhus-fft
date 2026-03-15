@@ -183,3 +183,19 @@ The following table summarizes the key specifications and design characteristics
 | Verification Method     | RTL simulation compared against C reference model                                          |
 | Test Vectors            | Golden vectors generated from the reference model                                          |
 | Result Validation       | Simulation results compared against golden outputs                                         |
+| N                       | Current Implementation if done for 1024 Points FFT                                         |
+
+## Configurable Parameters
+
+The FFT architecture is parameterized so that the design can support different FFT sizes without modifying the core logic. The following parameters control the size and behavior of the radix-2 FFT implementation.
+
+| Parameter       | Description                                                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `FFT_SIZE`      | Total number of FFT points (N). Determines how many complex samples are processed. Example values include 16, 64, 256, 1024, etc. |
+| `LOG2_FFT`      | Number of FFT stages, equal to `log2(FFT_SIZE)`. Each stage performs a radix-2 butterfly computation.                             |
+| `DATA_WIDTH`    | Bit width of each real or imaginary component. The current design uses 16-bit signed values (Q1.15 format).                       |
+| `COMPLEX_WIDTH` | Width of a packed complex sample. Typically `2 × DATA_WIDTH` (real + imaginary).                                                  |
+| `TWIDDLE_WIDTH` | Bit width used to represent twiddle factors. Matches the fixed-point representation used by the arithmetic units.                 |
+| `MEM_DEPTH`     | Depth of the internal sample memory. This value must be at least equal to `FFT_SIZE`.                                             |
+| `TWIDDLE_COUNT` | Number of twiddle factors stored in the ROM. Depends on the FFT size and stage structure.                                         |
+
