@@ -158,3 +158,28 @@ Performs the butterfly addition and subtraction with fixed-point scaling and sat
 
 **twiddle_rom**
 ROM containing the twiddle factors used during FFT stage computations.
+
+## Specifications
+
+The following table summarizes the key specifications and design characteristics of the **nexhus-fft radix-2 FFT accelerator**.
+
+| Parameter               | Description                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| FFT Algorithm           | Radix-2 Decimation-in-Time (DIT) FFT                                                       |
+| Implementation Language | SystemVerilog                                                                              |
+| Numeric Format          | Signed fixed-point **Q1.15** for real and imaginary components                             |
+| Complex Sample Width    | 32 bits (16-bit real + 16-bit imaginary)                                                   |
+| Arithmetic Precision    | 16-bit signed fixed-point                                                                  |
+| Multiplication          | 16×16 signed fixed-point complex multiplication                                            |
+| Scaling Strategy        | Per-stage scaling using arithmetic right shift to control overflow                         |
+| Butterfly Operation     | Radix-2 butterfly with complex twiddle multiplication                                      |
+| Twiddle Storage         | Precomputed twiddle factors stored in ROM                                                  |
+| Twiddle Format          | Q1.15 complex values                                                                       |
+| Memory Organization     | Internal memory used to store input samples, intermediate stage results, and final outputs |
+| Architecture Type       | Stage-based FFT architecture                                                               |
+| Processing Unit         | Butterfly processing unit with complex multiplier and add/sub stage                        |
+| Memory Access           | External interface allows loading input vectors and reading FFT results                    |
+| Control Interface       | Control logic used to start FFT execution and monitor completion                           |
+| Verification Method     | RTL simulation compared against C reference model                                          |
+| Test Vectors            | Golden vectors generated from the reference model                                          |
+| Result Validation       | Simulation results compared against golden outputs                                         |
