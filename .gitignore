@@ -1,0 +1,6 @@
+radix_2/docs/architecture/
+radix_2/docs/specs/
+radix_2/rtl/viv_proj
+radix_2/rtl/sv_radix_2_fft
+radix_2/rtl/archive
+radix_2/model/visual_studio/Radix_2_FFT_Q1_15
