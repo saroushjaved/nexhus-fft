@@ -27,6 +27,8 @@ nexhus-fft/
 ├── model/
 │   └── radix_2/
 │       └── (Contains the C model)
+│   └── visual_studio/
+│       └── (Contains the C model and Visual Studio Project)
 │
 ├── rtl/
 │   └── radix_2/
