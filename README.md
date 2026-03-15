@@ -1,94 +1,49 @@
 # NEXHUS IP — `FFT`
-## STATUS: UNDER DEVELOPMENT
 
 > **Fixed-point FFT Implementations IP with C++ and Octave reference model, Synthesizable Verilog RTL and Test Benches**
 
----
+# nexhus-fft
 
-## Overview
+**nexhus-fft** is a hardware implementation of a fixed-point Fast Fourier Transform (FFT) accelerator written in SystemVerilog. The design targets FPGA/ASIC environments and provides a modular radix-2 FFT architecture with AXI-based interfaces for control and memory access.
 
-This repository contains the **`FFT`** block developed as part of the **NEXHUS** open-source hardware project.
+The accelerator operates on complex samples in **Q1.15 fixed-point format** and performs staged butterfly computations using a configurable pipeline architecture. Twiddle factors are stored in ROM and accessed during each stage of the FFT computation.
 
-The IP is designed following a **spec → model → software → RTL → verification** flow:
+The project is structured to separate **control logic, memory interfaces, and FFT processing cores**, allowing the design to be easily integrated into larger SoC systems.
 
-1. Mathematical reference model (Octave)
-2. Bit-accurate fixed-point software model (C/C++/Octave)
-3. Synthesizable RTL
+## Key Features
 
-This IP can be:
-
-* used standalone
-* integrated into the NEXHUS SoC
-* reused in external projects
-
----
-
-## Features
-
-* Fixed-point implementation (Q-format: Q1.15)
-* Deterministic rounding and saturation
-* Bit-accurate across MATLAB, C, and RTL
-* Parameterizable (size / width / stages, if applicable)
-* Fully verifiable with golden vectors
----
+- Radix-2 FFT architecture
+- Q1.15 fixed-point complex arithmetic
+- Modular SystemVerilog design
+- AXI4-Lite control interface
+- AXI memory interface for sample loading and retrieval
+- Twiddle ROM for efficient coefficient access
+- Stage-based FFT processing pipeline
 
 ## Repository Structure
 
-```
-|___radix_2/
-|   ├── spec/                             # IP specification and interface definitions
-|   ├── model/
-|   │   └── octave/                       # Reference model + vector generation
-|   │   └── cpp_fixed_point/              # Reference model + vector generation
-|   ├── sw/
-|   │   ├── include/          # Public headers
-|   │   ├── src/              # Implementation
-|   │   ├── tests/            # Unit tests vs golden vectors
-|   │   └── examples/         # Usage examples
-|   ├── rtl/
-|   │   └── src/              # Synthesizable RTL
-|   ├── dv/
-|   │   ├── testbench/        # Verification environment
-|   │   └── tests/            # Directed and random tests
-|   ├── vectors/
-|   │   ├── golden/           # Frozen reference vectors (versioned)
-|   │   └── generated/        # Auto-generated (ignored)
-|   ├── tools/                # Helper scripts
-|   └── .github/workflows/    # CI
-|___radix_3
-```
+nexhus-fft/
+│
+├── model/
+│   └── radix_2/
+│       └── (Contains the C model)
+│
+├── rtl/
+│   └── radix_2/
+│       ├── source/        (Contains design files)
+│       ├── simulation/    (Contains the testbenches)
+│       └── memory/        (Contains memory files)
+│
+├── specs/
+│   └── (Detailed markdown document containing the specifications)
+│
+├── vectors/
+│   └── radix_2/
+│       ├── golden/            (Golden input vectors)
+│       ├── vector_generator/  (Python scripts used to generate additional golden vectors)
+│       └── results/           (Simulation result summaries and comparison files)
+│
+└── documentation/
+    └── architecture/
+        └── (Detailed documentation of the architecture)
 
----
-
-## Specifications
-
-Key design parameters are defined in:
-
-* `spec/FFT_spec.md`
-* `spec/fixed_point.md`
-
-These documents define:
-
-* input/output formats
-* internal scaling rules
-* rounding and saturation behavior
-* latency and throughput
-* interfaces and timing assumptions
----
-
-## Fixed-Point Conventions
-
-This IP follows the *The Following Conventions*
-
-See `spec/fixed_point.md` for details.
-
----
-
-
-## License
-
-## Contributing
-
-## Contact
-
-Email: saroushjaved@gmail.com
