@@ -3,21 +3,20 @@
 module fft_stage_core_controller #(
     parameter int N = 1024
 )(
-    input  logic            clk,
-    input  logic            rst_n,
-    input  logic            start,
-    input  logic [3:0]      stage,
-    output logic            done,
-    output logic            busy,
+    input  logic                 clk,
+    input  logic                 rst_n,
+    input  logic                 start,
+    input  logic [3:0]           stage,
+    output logic                 done,
+    output logic                 busy,
 
-    // External sample memory write port (used when idle)
-    input  logic            ext_we,
+    // External sample memory access, only valid when full FFT is idle
+    input  logic                 ext_we,
     input  logic [$clog2(N)-1:0] ext_waddr,
-    input  logic [31:0]     ext_wdata,
+    input  logic [31:0]          ext_wdata,
 
-    // External sample memory read port
     input  logic [$clog2(N)-1:0] ext_raddr,
-    output logic [31:0]     ext_rdata
+    output logic [31:0]          ext_rdata
 );
 
     localparam int AW    = $clog2(N);
@@ -25,14 +24,12 @@ module fft_stage_core_controller #(
 
     typedef enum logic [2:0] {
         S_IDLE,
-        S_REORDER,
         S_KICK,
         S_RUN,
         S_DONE
     } state_t;
 
     state_t state, next_state;
-
 
     function automatic [AW-1:0] bitrev(input [AW-1:0] x);
         integer i;
@@ -41,10 +38,19 @@ module fft_stage_core_controller #(
                 bitrev[i] = x[AW-1-i];
         end
     endfunction
+
     // ------------------------------------------------------------
-    // Local sample memory
+    // Memory interface signals
     // ------------------------------------------------------------
-    logic [31:0] sample_mem [0:N-1];
+    logic          mem_en_a, mem_we_a;
+    logic [AW-1:0] mem_addr_a;
+    logic [31:0]   mem_din_a;
+    logic [31:0]   mem_dout_a;
+
+    logic          mem_en_b, mem_we_b;
+    logic [AW-1:0] mem_addr_b;
+    logic [31:0]   mem_din_b;
+    logic [31:0]   mem_dout_b;
 
     // ------------------------------------------------------------
     // Stage-core handshake
@@ -54,7 +60,7 @@ module fft_stage_core_controller #(
     logic core_busy;
 
     // ------------------------------------------------------------
-    // Stage-core RAM ports
+    // Stage-core RAM-side signals
     // ------------------------------------------------------------
     logic [AW-1:0] rd_addr_a;
     logic [AW-1:0] rd_addr_b;
@@ -69,35 +75,21 @@ module fft_stage_core_controller #(
     logic [31:0]   wr_data_b;
 
     // ------------------------------------------------------------
-    // Twiddle ROM ports
+    // Twiddle ROM
     // ------------------------------------------------------------
     logic [TW_AW-1:0] tw_addr;
     logic [31:0]      tw_data;
 
-    // ------------------------------------------------------------
-    // External read port always available
-    // ------------------------------------------------------------
-    assign ext_rdata = sample_mem[ext_raddr];
-
-    // ------------------------------------------------------------
-    // Sample memory read behavior for stage core
-    // Async-read style for now
-    // ------------------------------------------------------------
-    assign rd_data_a = sample_mem[rd_addr_a];
-    assign rd_data_b = sample_mem[rd_addr_b];
-
-    // ------------------------------------------------------------
-    // Twiddle ROM
-    // ------------------------------------------------------------
     twiddle_rom #(
         .N(N/2)
     ) u_twiddle_rom (
+        .clk    (clk),
         .tw_addr(tw_addr),
         .tw_data(tw_data)
     );
 
     // ------------------------------------------------------------
-    // RAM-based stage core
+    // FFT stage core
     // ------------------------------------------------------------
     fft_stage_core #(
         .N(N)
@@ -126,52 +118,66 @@ module fft_stage_core_controller #(
     );
 
     // ------------------------------------------------------------
-    // FSM outputs
+    // Sample memory instance
     // ------------------------------------------------------------
-always_comb begin
-    next_state = state;
+    
+     
+    bram_memeory#(
+    .N(N),
+    .DATA_W(32),
+    .AW(AW)
+    ) u_sample_mem (
+        .clk   (clk),
 
-    core_start = 1'b0;
-    done       = 1'b0;
-    busy       = (state != S_IDLE);
+        .en_a  (mem_en_a),
+        .we_a  (mem_we_a),
+        .addr_a(mem_addr_a),
+        .din_a (mem_din_a),
+        .dout_a(mem_dout_a),
 
-    case (state)
-        S_IDLE: begin
-            if (start) begin
-                if (stage == 4'd0)
-                    next_state = S_REORDER;
-                else
+        .en_b  (mem_en_b),
+        .we_b  (mem_we_b),
+        .addr_b(mem_addr_b),
+        .din_b (mem_din_b),
+        .dout_b(mem_dout_b)
+    );
+
+    // ------------------------------------------------------------
+    // FSM
+    // ------------------------------------------------------------
+    always_comb begin
+        next_state = state;
+        core_start = 1'b0;
+        done       = 1'b0;
+        busy       = (state != S_IDLE);
+
+        case (state)
+            S_IDLE: begin
+                if (start)
                     next_state = S_KICK;
             end
-        end
 
-        S_REORDER: begin
-            next_state = S_KICK;
-        end
+            S_KICK: begin
+                core_start = 1'b1;
+                next_state = S_RUN;
+            end
 
-        S_KICK: begin
-            core_start = 1'b1;
-            next_state = S_RUN;
-        end
+            S_RUN: begin
+                if (core_done)
+                    next_state = S_DONE;
+            end
 
-        S_RUN: begin
-            if (core_done)
-                next_state = S_DONE;
-        end
+            S_DONE: begin
+                done       = 1'b1;
+                next_state = S_IDLE;
+            end
 
-        S_DONE: begin
-            done       = 1'b1;
-            next_state = S_IDLE;
-        end
+            default: begin
+                next_state = S_IDLE;
+            end
+        endcase
+    end
 
-        default: begin
-            next_state = S_IDLE;
-        end
-    endcase
-end
-    // ------------------------------------------------------------
-    // State register
-    // ------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n)
             state <= S_IDLE;
@@ -180,38 +186,68 @@ end
     end
 
     // ------------------------------------------------------------
-    // Sample memory write arbitration
-    // External writes allowed only in IDLE
-    // Stage-core writes allowed only in RUN
+    // Port muxing
+    //
+    // IDLE:
+    //   Port A = external access
+    //   Port B = unused
+    //
+    // RUN:
+    //   READ phase handled by stage_core internal timing
+    //   WRITE phase handled by wr_en_a / wr_en_b
     // ------------------------------------------------------------
-integer k;
-always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-        for (k = 0; k < N; k = k + 1)
-            sample_mem[k] <= 32'd0;
-    end
-    else begin
+    always_comb begin
+        mem_en_a   = 1'b0;
+        mem_we_a   = 1'b0;
+        mem_addr_a = '0;
+        mem_din_a  = '0;
+
+        mem_en_b   = 1'b0;
+        mem_we_b   = 1'b0;
+        mem_addr_b = '0;
+        mem_din_b  = '0;
+
+        ext_rdata = mem_dout_a;
+
         case (state)
             S_IDLE: begin
-                if (ext_we)
-                    sample_mem[ext_waddr] <= ext_wdata;
-            end
-
-            S_REORDER: begin
-                for (k = 0; k < N; k = k + 1)
-                    sample_mem[k] <= sample_mem[bitrev(k[AW-1:0])];
+                mem_en_a   = 1'b1;
+                mem_we_a   = ext_we;
+                mem_addr_a = bitrev(ext_we ? ext_waddr : ext_raddr);
+                mem_din_a  = ext_wdata;
             end
 
             S_RUN: begin
-                if (wr_en_a)
-                    sample_mem[wr_addr_a] <= wr_data_a;
-                if (wr_en_b)
-                    sample_mem[wr_addr_b] <= wr_data_b;
+                mem_en_a = 1'b1;
+                mem_en_b = 1'b1;
+
+                if (wr_en_a || wr_en_b) begin
+                    mem_we_a   = wr_en_a;
+                    mem_addr_a = wr_addr_a;
+                    mem_din_a  = wr_data_a;
+
+                    mem_we_b   = wr_en_b;
+                    mem_addr_b = wr_addr_b;
+                    mem_din_b  = wr_data_b;
+                end
+                else begin
+                    mem_we_a   = 1'b0;
+                    mem_addr_a = rd_addr_a;
+
+                    mem_we_b   = 1'b0;
+                    mem_addr_b = rd_addr_b;
+                end
             end
 
             default: begin
             end
         endcase
     end
-end
+
+    // ------------------------------------------------------------
+    // Feed synchronous read data to stage core
+    // ------------------------------------------------------------
+    assign rd_data_a = mem_dout_a;
+    assign rd_data_b = mem_dout_b;
+
 endmodule

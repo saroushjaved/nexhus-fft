@@ -33,9 +33,10 @@ module fft_stage_core #(
     localparam int TW_AW  = $clog2(N/2);
     localparam int N_BFLY = N/2;
 
-    typedef enum logic [2:0] {
+    typedef enum logic [3:0] {
         S_IDLE,
         S_ADDR,
+        S_MEMWAIT,
         S_READ,
         S_RUN,
         S_WAIT,
@@ -43,7 +44,7 @@ module fft_stage_core #(
         S_NEXT,
         S_DONE
     } state_t;
-
+    
     state_t state, next_state;
 
     // ------------------------------------------------------------
@@ -176,9 +177,13 @@ module fft_stage_core #(
             end
 
             S_ADDR: begin
+                 next_state = S_MEMWAIT;
+                end
+
+            S_MEMWAIT: begin
                 next_state = S_READ;
             end
-
+            
             S_READ: begin
                 next_state = S_RUN;
             end
