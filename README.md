@@ -21,7 +21,7 @@ The project is structured to separate **control logic, memory interfaces, and FF
 - Stage-based FFT processing pipeline
 
 ## Repository Structure
-
+```
 nexhus-fft/
 │
 ├── model/
@@ -47,3 +47,4 @@ nexhus-fft/
     └── architecture/
         └── (Detailed documentation of the architecture)
 
+```
