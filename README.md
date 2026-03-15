@@ -122,6 +122,7 @@ fft_accel_fft_top
 │           │       └── add_sub_sat_s1_q15
 │           │
 │           └── twiddle_rom
+                    (In case you need to change Twiddle Memeory File Change it in this Module)
 ```
 
 ### Description
@@ -212,3 +213,208 @@ The top-level FFT accelerator is parameterized to allow changes in FFT length an
 * `N` should be a power of two for radix-2 FFT operation.
 * Increasing `N` increases the number of FFT stages.
 * `AXI_ADDR_W`, `AXI_DATA_W`, and `AXI_ID_W` allow the accelerator to be adapted to different system bus configurations.
+
+
+## Supported FFT Sizes
+
+The FFT accelerator is designed to support **power-of-two transform sizes** using a radix-2 Decimation-in-Time (DIT) algorithm. The FFT length is controlled by the top-level parameter `N`.
+
+| Parameter             | Description                                       |
+| --------------------- | ------------------------------------------------- |
+| `N`                   | Number of FFT points processed by the accelerator |
+| Constraint            | `N` must be a power of two                        |
+| Number of Stages      | `log₂(N)`                                         |
+| Butterflies per Stage | `N / 2`                                           |
+
+Changing `N` automatically changes the number of stages executed by the FFT controller.
+
+Typical supported sizes include:
+
+| FFT Size (N) | Stages |
+| ------------ | ------ |
+| 16           | 4      |
+| 64           | 6      |
+| 256          | 8      |
+| 1024         | 10     |
+
+The current configuration of the design uses **N = 1024**.
+
+---
+
+## Numeric Representation
+
+The FFT datapath uses **signed fixed-point arithmetic**.
+
+| Parameter            | Value             |
+| -------------------- | ----------------- |
+| Format               | Q1.15 fixed-point |
+| Real width           | 16 bits           |
+| Imaginary width      | 16 bits           |
+| Complex sample width | 32 bits           |
+
+### Complex Sample Packing
+
+Complex samples are stored as a packed 32-bit value:
+
+| Bits      | Content             |
+| --------- | ------------------- |
+| `[31:16]` | Real component      |
+| `[15:0]`  | Imaginary component |
+
+### Arithmetic Behavior
+
+FFT butterfly operations involve:
+
+* complex multiplication
+* addition
+* subtraction
+* arithmetic right shifting for scaling
+
+Intermediate values may temporarily expand in width during multiplication or addition, after which results are scaled and truncated back to **16-bit Q1.15 format**.
+
+---
+
+## Memory Layout
+
+The FFT uses an internal memory structure to store:
+
+* input samples
+* intermediate stage results
+* final FFT outputs
+
+Samples are stored sequentially in memory.
+
+| Address | Content    |
+| ------- | ---------- |
+| `0`     | Sample 0   |
+| `1`     | Sample 1   |
+| `2`     | Sample 2   |
+| ...     | ...        |
+| `N-1`   | Sample N-1 |
+
+Each memory entry stores **one complex sample** packed into 32 bits.
+
+The FFT computation operates **in-place**, meaning intermediate results overwrite previous stage data within the same memory array.
+
+---
+
+## FFT Execution Flow
+
+The FFT accelerator executes the transform in a sequence of stages controlled by the FFT controller.
+
+### Execution Steps
+
+1. **Load Input Samples**
+   Input vectors are written into the internal sample memory.
+
+2. **Start FFT**
+   A start signal is issued through the control interface.
+
+3. **Stage Iteration**
+   The controller iterates through `log₂(N)` stages.
+
+4. **Butterfly Computation**
+   Each stage performs `N/2` butterfly operations.
+
+5. **Memory Update**
+   Results from each butterfly overwrite the previous data in memory.
+
+6. **Completion**
+   After the final stage completes, the FFT output samples are available in memory.
+
+---
+
+## Radix-2 Butterfly Operation
+
+The radix-2 butterfly is the fundamental computational unit of the FFT.
+
+Given two complex inputs:
+
+```
+A
+B
+```
+
+and a twiddle factor `W`, the butterfly performs:
+
+```
+T = B × W
+X = A + T
+Y = A − T
+```
+
+Where:
+
+* `T` is the complex multiplication result
+* `X` and `Y` are the butterfly outputs
+
+These outputs replace the original inputs in memory during stage processing.
+
+---
+
+## Twiddle Factor Storage
+
+Twiddle factors are the complex exponential coefficients required during FFT stage computations.
+
+They are defined as:
+
+```
+W_N^k = e^{-j2πk/N}
+```
+
+where:
+
+| Symbol | Meaning       |
+| ------ | ------------- |
+| `N`    | FFT size      |
+| `k`    | Twiddle index |
+
+### Storage
+
+Twiddle factors are stored in a **ROM module** within the design.
+
+| Property     | Description                       |
+| ------------ | --------------------------------- |
+| Storage type | Read-only memory                  |
+| Format       | Q1.15 complex values              |
+| Access       | Addressed by the stage controller |
+
+The stage controller generates the appropriate twiddle address for each butterfly operation.
+
+---
+
+## Verification Flow
+
+Verification of the FFT accelerator is performed using a **reference model and golden vectors**.
+
+### Verification Process
+
+1. **Reference Model**
+   A C implementation of the radix-2 FFT generates reference outputs.
+
+2. **Golden Vector Generation**
+   The reference model produces input vectors and corresponding expected FFT results.
+
+3. **RTL Simulation**
+   The SystemVerilog testbench feeds the golden inputs to the RTL design.
+
+4. **Result Comparison**
+   Simulation outputs are compared against the golden results.
+
+5. **Summary Generation**
+   Comparison results are stored and summarized in the `vectors/results` directory.
+
+### Verification Flow
+
+```
+C Model
+   │
+   ▼
+Golden Vectors
+   │
+   ▼
+RTL Simulation
+   │
+   ▼
+Result Comparison
+```
