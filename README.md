@@ -1,6 +1,6 @@
 # NEXHUS IP — `FFT`
 
-> **Fixed-point FFT Implementations IP with C++ and Octave reference model, Synthesizable Verilog RTL and Test Benches**
+> **Fixed-point FFT Implementations IP with C++ reference model, Synthesizable Verilog RTL and Test Benches**
 
 # nexhus-fft
 
