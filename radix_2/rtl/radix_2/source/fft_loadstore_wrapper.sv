@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module fft_loadstore_wrapper #(
     parameter int N = 1024
 )(

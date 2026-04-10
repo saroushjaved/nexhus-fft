@@ -1,11 +1,14 @@
+`timescale 1ns / 1ps
+
 // ============================================================================
 // Module Name : add_sub_sat_s1_q15
 // File        : add_sub_sat_s1_q15.sv
 // Author      : Soroush Javed Sulehri
 //
 // Description :
-//   This module implements a Q1.15 fixed-point butterfly add/subtract stage
-//   with scaling and saturation, intended for FFT/IFFT datapaths.
+//   This module implements a butterfly add/subtract stage for signed 16-bit
+//   fixed-point values with 15 fractional bits, including scaling and
+//   saturation for FFT/IFFT datapaths.
 //
 //   Given complex inputs A = (a_real, a_imag) and T = (t_real, t_imag):
 //
@@ -13,10 +16,10 @@
 //     y1 = sat16( (A - T) >>> 1 )   // scaled difference
 //
 //   Key features:
-//     - 16-bit signed Q1.15 arithmetic
+//     - 16-bit signed arithmetic with 15 fractional bits
 //     - Internal widening to 17 bits to preserve precision
 //     - Arithmetic right shift by 1 for stage-wise scaling
-//     - Saturation to prevent overflow (±32767 / -32768)
+//     - Saturation to prevent overflow (Â±32767 / -32768)
 //     - Fully combinational (no clock, no latency)
 //
 //   This block is typically used after a complex multiply in radix-2
