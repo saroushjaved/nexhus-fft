@@ -1,26 +1,28 @@
-`timescale 1ns/1ps
+`timescale 1ns / 1ps
 
-module fft_stage_core_controller #(
-    parameter int N = 1024
+module fft_stage_core_controller_runtime #(
+    parameter int NMAX = 2048,
+    parameter MEMORY_PRIMITIVE = "block"
 )(
-    input  logic                 clk,
-    input  logic                 rst_n,
-    input  logic                 start,
-    input  logic [3:0]           stage,
-    output logic                 done,
-    output logic                 busy,
+    input  logic                    clk,
+    input  logic                    rst_n,
+    input  logic                    start,
+    input  logic [3:0]              stage,
+    input  logic [3:0]              size_log2,
+    input  logic                    inverse,
+    output logic                    done,
+    output logic                    busy,
 
-    // External sample memory access, only valid when full FFT is idle
-    input  logic                 ext_we,
-    input  logic [$clog2(N)-1:0] ext_waddr,
-    input  logic [31:0]          ext_wdata,
+    input  logic                    ext_we,
+    input  logic [$clog2(NMAX)-1:0] ext_waddr,
+    input  logic [31:0]             ext_wdata,
 
-    input  logic [$clog2(N)-1:0] ext_raddr,
-    output logic [31:0]          ext_rdata
+    input  logic [$clog2(NMAX)-1:0] ext_raddr,
+    output logic [31:0]             ext_rdata
 );
 
-    localparam int AW    = $clog2(N);
-    localparam int TW_AW = $clog2(N/2);
+    localparam int AW    = $clog2(NMAX);
+    localparam int TW_AW = $clog2(NMAX/2);
 
     typedef enum logic [2:0] {
         S_IDLE,
@@ -31,24 +33,8 @@ module fft_stage_core_controller #(
 
     state_t state, next_state;
 
-    // Tracks whether BRAM currently holds FFT-output ordering.
-    // When software loads fresh samples, they are stored in bit-reversed
-    // locations for the DIT flow, so external reads must also bit-reverse
-    // until a full FFT run completes. After a run completes, BRAM contents
-    // are already in natural order and should be read back directly.
     logic data_is_fft_output;
 
-    function automatic [AW-1:0] bitrev(input [AW-1:0] x);
-        integer i;
-        begin
-            for (i = 0; i < AW; i = i + 1)
-                bitrev[i] = x[AW-1-i];
-        end
-    endfunction
-
-    // ------------------------------------------------------------
-    // Memory interface signals
-    // ------------------------------------------------------------
     logic          mem_en_a, mem_we_a;
     logic [AW-1:0] mem_addr_a;
     logic [31:0]   mem_din_a;
@@ -59,89 +45,81 @@ module fft_stage_core_controller #(
     logic [31:0]   mem_din_b;
     logic [31:0]   mem_dout_b;
 
-    // ------------------------------------------------------------
-    // Stage-core handshake
-    // ------------------------------------------------------------
-    logic core_start;
-    logic core_done;
-    logic core_busy;
+    logic                    core_start;
+    logic                    core_done;
+    logic                    core_busy;
+    logic [AW-1:0]           rd_addr_a;
+    logic [AW-1:0]           rd_addr_b;
+    logic [31:0]             rd_data_a;
+    logic [31:0]             rd_data_b;
+    logic                    wr_en_a;
+    logic                    wr_en_b;
+    logic [AW-1:0]           wr_addr_a;
+    logic [AW-1:0]           wr_addr_b;
+    logic [31:0]             wr_data_a;
+    logic [31:0]             wr_data_b;
+    logic [TW_AW-1:0]        tw_addr;
+    logic [31:0]             tw_data;
 
-    // ------------------------------------------------------------
-    // Stage-core RAM-side signals
-    // ------------------------------------------------------------
-    logic [AW-1:0] rd_addr_a;
-    logic [AW-1:0] rd_addr_b;
-    logic [31:0]   rd_data_a;
-    logic [31:0]   rd_data_b;
+    function automatic [AW-1:0] bitrev_active(
+        input [AW-1:0] x,
+        input [3:0] logn
+    );
+        integer i;
+        begin
+            bitrev_active = '0;
+            for (i = 0; i < AW; i = i + 1) begin
+                if (i < logn)
+                    bitrev_active[i] = x[logn-1-i];
+            end
+        end
+    endfunction
 
-    logic          wr_en_a;
-    logic          wr_en_b;
-    logic [AW-1:0] wr_addr_a;
-    logic [AW-1:0] wr_addr_b;
-    logic [31:0]   wr_data_a;
-    logic [31:0]   wr_data_b;
-
-    // ------------------------------------------------------------
-    // Twiddle ROM
-    // ------------------------------------------------------------
-    logic [TW_AW-1:0] tw_addr;
-    logic [31:0]      tw_data;
-
-    twiddle_rom #(
-        .N(N/2)
+    twiddle_rom_runtime #(
+        .NMAX(NMAX)
     ) u_twiddle_rom (
         .clk    (clk),
         .tw_addr(tw_addr),
+        .inverse(inverse),
         .tw_data(tw_data)
     );
 
-    // ------------------------------------------------------------
-    // FFT stage core
-    // ------------------------------------------------------------
-    fft_stage_core #(
-        .N(N)
+    fft_stage_core_runtime #(
+        .NMAX(NMAX)
     ) u_stage_core (
         .clk      (clk),
         .rst_n    (rst_n),
         .start    (core_start),
         .stage    (stage),
+        .size_log2(size_log2),
         .done     (core_done),
         .busy     (core_busy),
-
         .rd_addr_a(rd_addr_a),
         .rd_addr_b(rd_addr_b),
         .rd_data_a(rd_data_a),
         .rd_data_b(rd_data_b),
-
         .wr_en_a  (wr_en_a),
         .wr_en_b  (wr_en_b),
         .wr_addr_a(wr_addr_a),
         .wr_addr_b(wr_addr_b),
         .wr_data_a(wr_data_a),
         .wr_data_b(wr_data_b),
-
         .tw_addr  (tw_addr),
         .tw_data  (tw_data)
     );
 
-    // ------------------------------------------------------------
-    // Sample memory instance
-    // ------------------------------------------------------------
-    
-     
-    bram_memeory#(
-    .N(N),
-    .DATA_W(32),
-    .AW(AW)
+    scratchpad_memory #(
+        .N(NMAX),
+        .DATA_W(32),
+        .AW(AW),
+        .MEMORY_PRIMITIVE(MEMORY_PRIMITIVE)
     ) u_sample_mem (
         .clk   (clk),
-
         .en_a  (mem_en_a),
         .we_a  (mem_we_a),
         .addr_a(mem_addr_a),
         .din_a (mem_din_a),
         .dout_a(mem_dout_a),
-
         .en_b  (mem_en_b),
         .we_b  (mem_we_b),
         .addr_b(mem_addr_b),
@@ -149,9 +127,6 @@ module fft_stage_core_controller #(
         .dout_b(mem_dout_b)
     );
 
-    // ------------------------------------------------------------
-    // FSM
-    // ------------------------------------------------------------
     always_comb begin
         next_state = state;
         core_start = 1'b0;
@@ -187,7 +162,7 @@ module fft_stage_core_controller #(
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            state <= S_IDLE;
+            state              <= S_IDLE;
             data_is_fft_output <= 1'b0;
         end
         else begin
@@ -200,17 +175,6 @@ module fft_stage_core_controller #(
         end
     end
 
-    // ------------------------------------------------------------
-    // Port muxing
-    //
-    // IDLE:
-    //   Port A = external access
-    //   Port B = unused
-    //
-    // RUN:
-    //   READ phase handled by stage_core internal timing
-    //   WRITE phase handled by wr_en_a / wr_en_b
-    // ------------------------------------------------------------
     always_comb begin
         mem_en_a   = 1'b0;
         mem_we_a   = 1'b0;
@@ -229,8 +193,8 @@ module fft_stage_core_controller #(
                 mem_en_a   = 1'b1;
                 mem_we_a   = ext_we;
                 mem_addr_a = ext_we
-                           ? bitrev(ext_waddr)
-                           : (data_is_fft_output ? ext_raddr : bitrev(ext_raddr));
+                           ? bitrev_active(ext_waddr, size_log2)
+                           : (data_is_fft_output ? ext_raddr : bitrev_active(ext_raddr, size_log2));
                 mem_din_a  = ext_wdata;
             end
 
@@ -261,9 +225,6 @@ module fft_stage_core_controller #(
         endcase
     end
 
-    // ------------------------------------------------------------
-    // Feed synchronous read data to stage core
-    // ------------------------------------------------------------
     assign rd_data_a = mem_dout_a;
     assign rd_data_b = mem_dout_b;
 

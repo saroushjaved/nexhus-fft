@@ -1,9 +1,13 @@
+`timescale 1ns / 1ps
+
 // ============================================================================
 // Module Name : cmulq15
 // Author      : Soroush Javed Sulehri
 //
 // Description :
-//   Q1.15 complex multiply producing Q1.15 output with saturation to 16-bit.
+//   Complex multiply for signed 16-bit fixed-point values with 15 fractional
+//   bits, producing the same format at the output with rounding and
+//   saturation.
 //   A = a_real + j*a_imag
 //   B = b_real + j*b_imag
 //
@@ -12,8 +16,8 @@
 //   y_real   = sat16(real_acc >>> 15)
 //   y_imag   = sat16(imag_acc >>> 15)
 //
-//   NOTE: As written, this implementation truncates after shifting.
-//         If you want rounding, enable the + (1<<14) logic before >>> 15.
+//   NOTE: The implementation adds + (1<<14) before >>> 15, so the reduction
+//         back to 15 fractional bits is rounded instead of truncated.
 // ============================================================================
 
 module cmulq15 (
@@ -43,24 +47,17 @@ module cmulq15 (
     assign real_acc = {arbr[31], arbr} - {aibi[31], aibi};
     assign imag_acc = {arbi[31], arbi} + {aibr[31], aibr};
 
-    // Optional rounding (uncomment if desired):
-    // logic signed [32:0] real_acc_rnd, imag_acc_rnd;
-    // assign real_acc_rnd = real_acc + 33'sd16384;  // + (1<<14)
-    // assign imag_acc_rnd = imag_acc + 33'sd16384;  // + (1<<14)
-
-    // Shift down to Q1.15 (currently truncation)
+    // Add + (1<<14) before shifting to round back to 15 fractional bits.
 
     logic signed [32:0] real_acc_rnd, imag_acc_rnd;
     logic signed [32:0] real_q15_wide, imag_q15_wide;
 
-        assign real_acc_rnd = real_acc + 33'sd16384; // 1<<14
-        assign imag_acc_rnd = imag_acc + 33'sd16384; // 1<<14
-        
-        assign real_q15_wide = real_acc_rnd >>> 15;
-        assign imag_q15_wide = imag_acc_rnd >>> 15;
-        
-        
-           
+    assign real_acc_rnd = real_acc + 33'sd16384; // 1<<14
+    assign imag_acc_rnd = imag_acc + 33'sd16384; // 1<<14
+
+    assign real_q15_wide = real_acc_rnd >>> 15;
+    assign imag_q15_wide = imag_acc_rnd >>> 15;
+
     // Saturation to signed 16-bit
     function automatic logic signed [15:0] sat16 (input logic signed [32:0] x);
         begin

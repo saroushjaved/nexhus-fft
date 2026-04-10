@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module fft_atomic_p1 (
     input  logic               clk,
     input  logic               rst_n,      // active-low reset
@@ -21,7 +23,7 @@ module fft_atomic_p1 (
 
     // -------------------------
     // Stage 0: combinational cmul
-    // t = b * W   (Q1.15 complex multiply)
+    // t = b * W using signed 16-bit fixed-point values with 15 fractional bits
     // -------------------------
     logic signed [15:0] t_real_c;
     logic signed [15:0] t_imag_c;

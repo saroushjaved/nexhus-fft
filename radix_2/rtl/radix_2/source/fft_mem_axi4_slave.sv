@@ -104,6 +104,7 @@ module fft_mem_axi4_slave #(
 
     logic                    rd_active;
     logic                    rd_pending;
+    logic                    rd_pending2;
     logic [AXI_ID_W-1:0]     rd_id;
     logic [AXI_ADDR_W-1:0]   rd_addr;
     logic [7:0]              rd_beats_left;
@@ -112,7 +113,7 @@ module fft_mem_axi4_slave #(
 
     always_comb begin
         mem_raddr = '0;
-        if (rd_active && rd_pending && addr_is_valid_word(rd_addr))
+        if (rd_active && (rd_pending || rd_pending2) && addr_is_valid_word(rd_addr))
             mem_raddr = mem_index(rd_addr);
     end
 
@@ -144,6 +145,7 @@ module fft_mem_axi4_slave #(
 
             rd_active     <= 1'b0;
             rd_pending    <= 1'b0;
+            rd_pending2   <= 1'b0;
             rd_id         <= '0;
             rd_addr       <= '0;
             rd_beats_left <= '0;
@@ -218,6 +220,7 @@ module fft_mem_axi4_slave #(
 
                 rd_active       <= 1'b1;
                 rd_pending      <= 1'b0;
+                rd_pending2     <= 1'b0;
                 rd_id           <= S_AXI_ARID;
                 rd_addr         <= S_AXI_ARADDR;
                 rd_beats_left   <= S_AXI_ARLEN + 1'b1;
@@ -229,13 +232,18 @@ module fft_mem_axi4_slave #(
                 S_AXI_RLAST     <= 1'b0;
             end
 
-            // read pipeline stage 1
-            if (rd_active && !rd_pending && !S_AXI_RVALID) begin
+            // read pipeline stage 1: launch memory address
+            if (rd_active && !rd_pending && !rd_pending2 && !S_AXI_RVALID) begin
                 rd_pending <= 1'b1;
             end
-            // read pipeline stage 2
-            else if (rd_active && rd_pending && !S_AXI_RVALID) begin
-                rd_pending <= 1'b0;
+            // read pipeline stage 2: wait one more cycle for synchronous BRAM output
+            else if (rd_active && rd_pending && !rd_pending2 && !S_AXI_RVALID) begin
+                rd_pending  <= 1'b0;
+                rd_pending2 <= 1'b1;
+            end
+            // read pipeline stage 3: return valid data
+            else if (rd_active && !rd_pending && rd_pending2 && !S_AXI_RVALID) begin
+                rd_pending2 <= 1'b0;
 
                 if (fft_busy) begin
                     S_AXI_RRESP <= AXI_RESP_SLVERR;
@@ -267,8 +275,11 @@ module fft_mem_axi4_slave #(
                 if (rd_beats_left == 8'd1) begin
                     rd_active   <= 1'b0;
                     rd_pending  <= 1'b0;
+                    rd_pending2 <= 1'b0;
                 end
                 else begin
+                    rd_pending  <= 1'b0;
+                    rd_pending2 <= 1'b0;
                     rd_addr <= next_axi_addr(rd_addr, rd_size, rd_burst);
                 end
             end

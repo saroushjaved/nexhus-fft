@@ -459,7 +459,7 @@ endtask
         // Read input file
         // format: <real_hex> <imag_hex>
         // --------------------------------------------------------
-        fd = $fopen("impulse_1024_input.txt", "r");
+        fd = $fopen("mixed_1024_input.txt", "r");
         if (fd == 0) begin
             $display("ERROR: cannot open input file");
             $finish;
@@ -480,7 +480,7 @@ endtask
         // Read reference file
         // format: <index_dec> <real_hex> <imag_hex>
         // --------------------------------------------------------
-        fd2 = $fopen("cmodel_fft_out_impulse_1024.txt", "r");
+        fd2 = $fopen("cmodel_fft_out_mixed_1024.txt", "r");
         if (fd2 == 0) begin
             $display("ERROR: cannot open reference file");
             $finish;
